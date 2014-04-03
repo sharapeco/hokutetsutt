@@ -1,3 +1,12 @@
 # How to use CasperJS
 
-Just do it.
+## Install PhantomJS and CasperJS
+
+Use Homebrew
+
+	% brew install phantomjs
+	% brew install casperjs --devel
+
+## Run
+
+	% casperjs save-kanazawa.js
