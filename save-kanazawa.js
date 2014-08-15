@@ -9,7 +9,7 @@ casper.userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537
 
 fs = require("fs");
 
-// 時刻表メニューから路線検索画面へ（リファラ付与）
+// 時刻表メニューから路線検索画面へ（JavaScript による POST）
 casper.start("http://arj.hokutetsu.co.jp/timetable/menu.php");
 casper.then(function() {
 	captureAndLog("going to rosen search");
@@ -69,16 +69,22 @@ function nextRosen() {
 		option = optionList.shift();
 		table = null;
 		pages = 1;
-		console.log("    " + option.label);
 
 		captureAndLog("next option: " + option.label);
 
-		if (option.clickSelector) {
-			casper.click(option.clickSelector);
-			casper.waitFor(isLoaderHidden, parseTable);
+		if (fs.exists("data/" + rosen.name + "-" + option.label + ".tsv")) {
+			console.log("    " + option.label + " ... skipped");
+			casper.wait(500, nextOption);
 		}
 		else {
-			parseTable.call(this);
+			console.log("    " + option.label);
+			if (option.clickSelector) {
+				casper.click(option.clickSelector);
+				casper.waitFor(isLoaderHidden, parseTable);
+			}
+			else {
+				parseTable.call(this);
+			}
 		}
 		
 		function parseTable() {
@@ -127,8 +133,8 @@ function nextRosen() {
 				return row.join("\t");
 			}).join("\n");
 			fs.write("data/" + rosen.name + "-" + option.label + ".tsv", text, "w");
-			
-			nextOption();
+
+			casper.wait(5000, nextOption);
 		}
 	}
 }
@@ -141,34 +147,6 @@ function isLoaderHidden() {
 	return this.evaluate(function() {
 		return document.querySelector("#loader").style.display == "none";
 	});
-}
-
-function getFormValues() {
-	var data = {}, els, form;
-	form = document.forms[0];
-	els = form.querySelectorAll("input, select, textarea");
-	Array.prototype.forEach.call(els, function(el) {
-		var name = el.getAttribute("name");
-		var value = el.value;
-		var type = el.getAttribute("type");
-		if (typeof name === "undefined" ||
-			el.getAttribute("disabled") ||
-			el.tagName.toLowerCase() === "input" && (type === "checkbox" || type === "radio") && !el.checked) {
-			return;
-		}
-		if (name in data) {
-			if (data[name] instanceof Array) {
-				data[name].push(value);
-			}
-			else {
-				data[name] = [data[name], value];
-			}
-		}
-		else {
-			data[name] = value;
-		}
-	});
-	return data;
 }
 
 function captureAndLog(message) {
